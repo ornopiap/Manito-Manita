@@ -189,7 +189,9 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     $('rcard').classList.toggle('hide',!(results.length&&isAdmin));
     var ul=$('rlist');ul.innerHTML='';
     var show=$('showall').checked;
+    var lastCat=null;
     results.forEach(function(r){
+      if(r.cat!==lastCat){lastCat=r.cat;var g=document.createElement('li');g.className='grp';g.textContent=r.cat;ul.appendChild(g)}
       var li=document.createElement('li');
       li.innerHTML='<span>'+esc(r.name)+' <span class="age">('+esc(r.cat)+')'+(show?' → <strong>'+esc(r.to)+'</strong>':'')+'</span></span>';
       var box=document.createElement('span');box.className='row';
@@ -247,8 +249,10 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     allCats().forEach(function(c){
       var g=people.filter(function(p){return p.cat===c});
       if(g.length<2){if(g.length)skipped.push(c);return}
-      for(var i=g.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=g[i];g[i]=g[j];g[j]=t}
-      g.forEach(function(p,k){var q=g[(k+1)%g.length];out.push({name:p.first+' '+p.last,first:p.first,cat:c,to:q.first+' '+q.last})});
+      var perm;
+      do{perm=g.slice();for(var i=perm.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=perm[i];perm[i]=perm[j];perm[j]=t}}
+      while(perm.some(function(q,k){return q===g[k]}));
+      g.forEach(function(p,k){var q=perm[k];out.push({name:p.first+' '+p.last,first:p.first,cat:c,to:q.first+' '+q.last})});
     });
     if(!out.length){$('dmsg').textContent='Each group needs at least 2 people.';return}
     results=out;save('mm_results',results);
