@@ -72,6 +72,7 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
 
   <section class="card">
     <h2>Participants (<span id="count">0</span>)</h2>
+    <div class="age" id="gsum" style="margin:-6px 0 6px"></div>
     <ul id="plist"></ul>
   </section>
 
@@ -88,13 +89,14 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
 
   <section class="card hide" id="dcard">
     <h2>2. Draw</h2>
+    <div class="msg err hide" id="newwarn" style="margin:0 0 10px"></div>
     <p class="age" style="margin:0">Names are drawn separately inside each group, avoiding same-family (last name) pairs where possible. Each group needs at least 2 people.</p>
     <button class="green" id="draw">Draw names 🎲</button>
     <div class="msg" id="dmsg"></div>
   </section>
 
   <section class="card hide" id="rcard">
-    <h2>3. Send private links</h2>
+    <h2>3. Send private links (<span id="rcount">0</span>)</h2>
     <label class="row" style="margin:0 0 8px"><input type="checkbox" id="showall" style="width:auto;margin-right:8px"> Show who has who (organizer only)</label>
     <ul id="rlist"></ul>
     <button class="ghost" id="copyall">Copy all links</button>
@@ -159,18 +161,33 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     if(cur&&l.concat('__new').indexOf(cur)>=0)s.value=cur;
     $('newcat').classList.toggle('hide',s.value!=='__new');
   }
+  function inDraw(p){var k=norm(p.first+' '+p.last);return results.some(function(r){return norm(r.name)===k})}
+  function renderWarn(){
+    var el=$('newwarn'),nd=(isAdmin&&results.length)?people.filter(function(p){return !inDraw(p)}):[];
+    if(!nd.length){el.classList.add('hide');return}
+    el.classList.remove('hide');
+    el.textContent='⚠ '+nd.length+(nd.length>1?' new participants are':' new participant is')+' not part of the draw: '+nd.map(function(p){return p.first+' '+p.last}).join(', ')+'. Tap “Draw names” to include them (this replaces the links already sent).';
+  }
   function renderPeople(){
     fillCats();
     $('count').textContent=people.length;
+    var cnt={};people.forEach(function(p){cnt[p.cat]=(cnt[p.cat]||0)+1});
+    $('gsum').textContent=people.length?('Total '+people.length+' · '+allCats().filter(function(c){return cnt[c]}).map(function(c){return c+' '+cnt[c]}).join(' · ')):'';
+    renderWarn();
     var ul=$('plist');ul.innerHTML='';
     if(!people.length){ul.innerHTML='<li class="age">No one yet.</li>';return}
     var CL=allCats(),last=null;
     people.map(function(p,i){return{p:p,i:i}}).sort(function(a,b){return CL.indexOf(a.p.cat)-CL.indexOf(b.p.cat)}).forEach(function(o){
-      if(o.p.cat!==last){last=o.p.cat;var g=document.createElement('li');g.className='grp';g.textContent=o.p.cat;ul.appendChild(g)}
+      if(o.p.cat!==last){last=o.p.cat;var g=document.createElement('li');g.className='grp';g.textContent=o.p.cat+' ('+cnt[o.p.cat]+')';ul.appendChild(g)}
       var li=document.createElement('li');
-      li.innerHTML='<span>'+esc(o.p.first+' '+o.p.last)+' <span class="age">· '+esc(String(o.p.age))+' yrs</span></span>';
+      li.innerHTML='<span>'+esc(o.p.first+' '+o.p.last)+' <span class="age">· '+esc(String(o.p.age))+' yrs</span>'+((isAdmin&&results.length&&!inDraw(o.p))?' <span class="err" style="font-size:.8rem">● not in draw</span>':'')+'</span>';
       var b=document.createElement('button');b.className='ghost sm';b.textContent='Remove';
-      b.onclick=function(){people.splice(o.i,1);save('mm_people',people);renderPeople()};
+      b.onclick=function(){
+        var p=o.p,msg='Remove this participant?\n\nName: '+p.first+' '+p.last+'\nAge: '+p.age+'\nGroup: '+p.cat;
+        if(results.length&&inDraw(p))msg+='\n\nThey are part of the current draw. You will need to draw again, which replaces the links already sent.';
+        if(!confirm(msg))return;
+        people.splice(o.i,1);save('mm_people',people);renderPeople();
+      };
       li.appendChild(b);ul.appendChild(li);
     });
   }
@@ -193,11 +210,12 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
   }
   function renderResults(){
     $('rcard').classList.toggle('hide',!(results.length&&isAdmin));
+    $('rcount').textContent=results.length;
     var ul=$('rlist');ul.innerHTML='';
     var show=$('showall').checked;
     var lastCat=null;
     sortedResults().forEach(function(r){
-      if(r.cat!==lastCat){lastCat=r.cat;var g=document.createElement('li');g.className='grp';g.textContent=r.cat;ul.appendChild(g)}
+      if(r.cat!==lastCat){lastCat=r.cat;var g=document.createElement('li');g.className='grp';g.textContent=r.cat+' ('+results.filter(function(x){return x.cat===r.cat}).length+')';ul.appendChild(g)}
       var li=document.createElement('li');
       li.innerHTML='<span>'+esc(lastOf(r)+', '+firstOf(r))+'<span class="age">'+(show?' → <strong>'+esc(r.to)+'</strong>':'')+'</span></span>';
       var box=document.createElement('span');box.className='row';
@@ -219,7 +237,7 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     $('lcard').classList.toggle('hide',isAdmin);
     $('clear').classList.toggle('hide',!isAdmin);
     $('logout').classList.toggle('hide',!isAdmin);
-    renderResults();
+    renderPeople();renderResults();
   }
   $('login').onclick=function(){
     if($('lu').value.trim().toLowerCase()==='admin'&&$('lp').value==='1234'){
@@ -270,7 +288,7 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     if(!out.length){$('dmsg').textContent='Each group needs at least 2 people.';return}
     results=out;save('mm_results',results);
     $('dmsg').textContent='Done! Send each person their private link below.'+(skipped.length?' Not enough people in: '+skipped.join(', ')+'.':'')+(famWarn.length?' Same-family pairs couldn’t be avoided in: '+famWarn.join(', ')+'.':'');
-    renderResults();
+    renderPeople();renderResults();
   };
 
   $('copyall').onclick=function(){
