@@ -3,34 +3,226 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Christmas Manito &amp; Manita Invitation</title>
+<title>Christmas Manito &amp; Manita</title>
 <style>
 :root{--bg:#fff7f2;--card:#fff;--ink:#2b1a1a;--mute:#7a6663;--red:#c62828;--green:#2e7d32;--line:#ecd9d2;color-scheme:light dark}
 @media (prefers-color-scheme:dark){:root{--bg:#1b1212;--card:#271a1a;--ink:#fbeeea;--mute:#b39a95;--red:#ef5350;--green:#66bb6a;--line:#42302e}}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px}
-.card{max-width:440px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px 22px;text-align:center}
-.tree{font-size:3rem}
-h1{margin:8px 0 6px;font-size:1.6rem;color:var(--red)}
-p{margin:0 0 14px;color:var(--mute)}
-ol{text-align:left;margin:0 0 20px;padding-left:22px}
-li{margin-bottom:6px}
-a.btn{display:block;padding:14px;border-radius:12px;background:var(--red);color:#fff;font-weight:700;text-decoration:none}
-small{display:block;margin-top:14px;color:var(--mute)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.7rem;margin:0 0 4px;color:var(--red)}
+h2{font-size:1.05rem;margin:0 0 12px}
+p.sub{margin:0 0 18px;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+label{display:block;font-size:.85rem;color:var(--mute);margin:10px 0 4px}
+input,select{width:100%;padding:12px;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+button{width:100%;margin-top:14px;padding:13px;font-size:1rem;font-weight:600;border:0;border-radius:10px;background:var(--red);color:#fff;cursor:pointer}
+button.green{background:var(--green)}
+button.ghost{background:none;color:var(--mute);border:1px solid var(--line)}
+button.sm{width:auto;margin:0 0 0 6px;padding:6px 10px;font-size:.85rem}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+li:last-child{border:0}
+li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:700}
+.age,.msg{color:var(--mute);font-size:.9rem}
+.msg{margin-top:10px}
+.reveal{text-align:center;padding:18px 8px;font-size:1.6rem;font-weight:700;color:var(--green)}
+.err{color:var(--red);font-size:1rem}
+.row{display:flex;align-items:center}
+.hide{display:none}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="tree">🎄🎁</div>
-  <h1>Christmas Manito &amp; Manita</h1>
-  <p>You’re invited to our gift exchange! Here’s how it works:</p>
-  <ol>
-    <li>Tap the button below.</li>
-    <li>Enter your first name, last name, age and group.</li>
-    <li>Come back after the draw, type your name, and find out who you’re gifting. 🤫</li>
-  </ol>
-  <a class="btn" href="https://claude.ai/artifact/6rZbx4T46TBmhjX4niahww">Join the exchange 🎅</a>
-  <small>Keep your Manito/Manita a secret!</small>
+<main>
+<h1>🎄 Manito &amp; Manita</h1>
+
+<!-- PARTICIPANT VIEW -->
+<div id="pview" class="hide">
+  <p class="sub">Your private gift-exchange link. Please keep it secret!</p>
+  <section class="card">
+    <h2>Who’s my Manito/Manita?</h2>
+    <label for="pf">First name</label>
+    <input id="pf" autocomplete="off" placeholder="First name">
+    <label for="pl">Last name</label>
+    <input id="pl" autocomplete="off" placeholder="Last name">
+    <button id="reveal">Reveal 🤫</button>
+    <div class="reveal hide" id="pres"></div>
+  </section>
 </div>
+
+<!-- ORGANIZER VIEW -->
+<div id="oview" class="hide">
+  <p class="sub">Add everyone, draw names within each group, then send each person their private link.</p>
+  <div class="card hide" id="fileWarn"><span class="err">This page must be opened from its website link (for example your GitHub Pages address), or the private links won’t work.</span></div>
+
+  <section class="card">
+    <h2>1. Add participants</h2>
+    <label for="fn">First name</label>
+    <input id="fn" maxlength="30" placeholder="e.g. Maria">
+    <label for="ln">Last name</label>
+    <input id="ln" maxlength="30" placeholder="e.g. Santos">
+    <label for="ag">Age</label>
+    <input id="ag" type="number" inputmode="numeric" min="1" max="120" placeholder="e.g. 25">
+    <label for="cat">Group</label>
+    <select id="cat"></select>
+    <input id="newcat" class="hide" maxlength="30" placeholder="Type your new group name" style="margin-top:8px">
+    <button id="add">Add person</button>
+    <div class="msg" id="amsg"></div>
+  </section>
+
+  <section class="card">
+    <h2>Participants (<span id="count">0</span>)</h2>
+    <ul id="plist"></ul>
+  </section>
+
+  <section class="card">
+    <h2>2. Draw</h2>
+    <p class="age" style="margin:0">Names are drawn separately inside each group. Each group needs at least 2 people.</p>
+    <button class="green" id="draw">Draw names 🎲</button>
+    <div class="msg" id="dmsg"></div>
+  </section>
+
+  <section class="card hide" id="rcard">
+    <h2>3. Send private links</h2>
+    <label class="row" style="margin:0 0 8px"><input type="checkbox" id="showall" style="width:auto;margin-right:8px"> Show who has who (organizer only)</label>
+    <ul id="rlist"></ul>
+    <button class="ghost" id="copyall">Copy all links</button>
+  </section>
+
+  <button class="ghost" id="clear">Clear everything</button>
+</div>
+</main>
+
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+  function norm(s){return String(s).replace(/\s+/g,' ').trim().toLowerCase()}
+  function enc(a){return btoa(unescape(encodeURIComponent(JSON.stringify(a)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+  function dec(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return JSON.parse(decodeURIComponent(escape(atob(s))))}
+  function load(k){try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(e){return []}}
+  function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+  var BASE=['Parents','Teens','Little kids'];
+  var people=load('mm_people'), results=load('mm_results');
+
+  /* ---------- Participant view ---------- */
+  var h=location.hash;
+  if(h.indexOf('#r=')===0){
+    var data=null;
+    try{data=dec(h.slice(3))}catch(e){}
+    $('pview').classList.remove('hide');
+    $('reveal').onclick=function(){
+      var r=$('pres');r.classList.remove('hide');
+      if(!data||data.length<3){r.className='reveal err';r.textContent='This link looks broken. Ask the organizer for a new one.';return}
+      if(norm($('pf').value+' '+$('pl').value)!==norm(data[0])){
+        r.className='reveal err';r.style.fontSize='1rem';r.textContent='That name doesn’t match this link. Type your first and last name.';return}
+      r.className='reveal';r.style.fontSize='';
+      r.innerHTML='🎁 '+esc(data[1])+'<div class="age" style="font-weight:400;font-size:.9rem;margin-top:6px">Group: '+esc(data[2])+'</div>';
+    };
+    return;
+  }
+
+  /* ---------- Organizer view ---------- */
+  $('oview').classList.remove('hide');
+  if(location.protocol==='file:')$('fileWarn').classList.remove('hide');
+
+  function allCats(){var l=BASE.slice();people.forEach(function(p){if(l.indexOf(p.cat)<0)l.push(p.cat)});return l}
+  function fillCats(){
+    var s=$('cat'),cur=s.value,l=allCats();s.innerHTML='';
+    l.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;s.appendChild(o)});
+    var n=document.createElement('option');n.value='__new';n.textContent='Others (add a new group)';s.appendChild(n);
+    if(cur&&l.concat('__new').indexOf(cur)>=0)s.value=cur;
+    $('newcat').classList.toggle('hide',s.value!=='__new');
+  }
+  function renderPeople(){
+    fillCats();
+    $('count').textContent=people.length;
+    var ul=$('plist');ul.innerHTML='';
+    if(!people.length){ul.innerHTML='<li class="age">No one yet.</li>';return}
+    var CL=allCats(),last=null;
+    people.map(function(p,i){return{p:p,i:i}}).sort(function(a,b){return CL.indexOf(a.p.cat)-CL.indexOf(b.p.cat)}).forEach(function(o){
+      if(o.p.cat!==last){last=o.p.cat;var g=document.createElement('li');g.className='grp';g.textContent=o.p.cat;ul.appendChild(g)}
+      var li=document.createElement('li');
+      li.innerHTML='<span>'+esc(o.p.first+' '+o.p.last)+' <span class="age">· '+esc(String(o.p.age))+' yrs</span></span>';
+      var b=document.createElement('button');b.className='ghost sm';b.textContent='Remove';
+      b.onclick=function(){people.splice(o.i,1);save('mm_people',people);renderPeople()};
+      li.appendChild(b);ul.appendChild(li);
+    });
+  }
+  function baseUrl(){return location.href.split('#')[0]}
+  function linkFor(r){return baseUrl()+'#r='+enc([r.name,r.to,r.cat])}
+  function msgFor(r){return 'Hi '+r.first+'! 🎄 Here’s your private Manito/Manita link. Open it and type your first and last name to see who you’re gifting (keep it secret!): '+linkFor(r)}
+  function copy(t,done){
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,function(){window.prompt('Copy this:',t)})}
+    else{window.prompt('Copy this:',t)}
+  }
+  function renderResults(){
+    $('rcard').classList.toggle('hide',!results.length);
+    var ul=$('rlist');ul.innerHTML='';
+    var show=$('showall').checked;
+    results.forEach(function(r){
+      var li=document.createElement('li');
+      li.innerHTML='<span>'+esc(r.name)+' <span class="age">('+esc(r.cat)+')'+(show?' → <strong>'+esc(r.to)+'</strong>':'')+'</span></span>';
+      var box=document.createElement('span');box.className='row';
+      var c=document.createElement('button');c.className='sm';c.textContent='Copy';
+      c.onclick=function(){copy(msgFor(r),function(){c.textContent='Copied ✓';setTimeout(function(){c.textContent='Copy'},1500)})};
+      box.appendChild(c);
+      if(navigator.share){
+        var s=document.createElement('button');s.className='sm green';s.textContent='Share';
+        s.onclick=function(){navigator.share({title:'Manito & Manita',text:msgFor(r)}).catch(function(){})};
+        box.appendChild(s);
+      }
+      li.appendChild(box);ul.appendChild(li);
+    });
+  }
+
+  $('cat').onchange=function(){$('newcat').classList.toggle('hide',this.value!=='__new')};
+  $('showall').onchange=renderResults;
+
+  $('add').onclick=function(){
+    var f=$('fn').value.trim(),l=$('ln').value.trim(),a=parseInt($('ag').value,10),cat=$('cat').value,m=$('amsg');
+    if(!f||!l||!(a>0&&a<121)){m.textContent='Please enter first name, last name and a valid age.';return}
+    if(cat==='__new'){
+      cat=$('newcat').value.trim();
+      if(!cat){m.textContent='Please type the new group name.';return}
+      var ex=allCats().filter(function(c){return c.toLowerCase()===cat.toLowerCase()})[0];if(ex)cat=ex;
+    }
+    var full=norm(f+' '+l);
+    if(people.some(function(p){return norm(p.first+' '+p.last)===full})){m.textContent='That person is already on the list.';return}
+    people.push({first:f,last:l,age:a,cat:cat});save('mm_people',people);
+    $('fn').value='';$('ln').value='';$('ag').value='';$('newcat').value='';
+    m.textContent='Added '+f+' ✓';renderPeople();$('fn').focus();
+  };
+
+  $('draw').onclick=function(){
+    if(results.length&&!confirm('Drawing again will replace the links you already sent. Continue?'))return;
+    var out=[],skipped=[];
+    allCats().forEach(function(c){
+      var g=people.filter(function(p){return p.cat===c});
+      if(g.length<2){if(g.length)skipped.push(c);return}
+      for(var i=g.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=g[i];g[i]=g[j];g[j]=t}
+      g.forEach(function(p,k){var q=g[(k+1)%g.length];out.push({name:p.first+' '+p.last,first:p.first,cat:c,to:q.first+' '+q.last})});
+    });
+    if(!out.length){$('dmsg').textContent='Each group needs at least 2 people.';return}
+    results=out;save('mm_results',results);
+    $('dmsg').textContent='Done! Send each person their private link below.'+(skipped.length?' Not enough people in: '+skipped.join(', ')+'.':'');
+    renderResults();
+  };
+
+  $('copyall').onclick=function(){
+    var b=$('copyall');
+    copy(results.map(function(r){return r.name+': '+linkFor(r)}).join('\n'),function(){b.textContent='Copied ✓';setTimeout(function(){b.textContent='Copy all links'},1500)});
+  };
+
+  $('clear').onclick=function(){
+    if(!confirm('Remove all participants and links?'))return;
+    people=[];results=[];save('mm_people',people);save('mm_results',results);
+    $('dmsg').textContent='';renderPeople();renderResults();
+  };
+
+  renderPeople();renderResults();
+})();
+</script>
 </body>
 </html>
