@@ -31,6 +31,7 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
 .row{display:flex;align-items:center}
 .nm{width:100%;margin:6px 0 0;text-align:left;color:var(--ink)}
 .nm.me{border-color:var(--green)}
+.nm:disabled{opacity:.35;cursor:not-allowed}
 .nm.sel{background:var(--green);color:#fff;border-color:var(--green)}
 .hide{display:none}
 </style>
@@ -44,7 +45,7 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
   <p class="sub">Your private gift-exchange link. Keep it secret!</p>
   <section class="card hide" id="pcard"><div class="reveal" id="pres"></div></section>
   <section class="card">
-    <h2>Tap your name to see your Manito/Manita 🤫</h2>
+    <h2>Tap your name (the only one you can choose) 🤫</h2>
     <div id="pnames"></div>
   </section>
 </div>
@@ -128,16 +129,16 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     try{data=dec(token)}catch(e){}
     $('pview').classList.remove('hide');
     var pn=$('pnames');
-    if(!data||!data.n||!data.t){pn.innerHTML='<p class="err">This link looks broken. Ask the organizer for a new one.</p>';return}
+    if(!data||!data.n||typeof data.r!=='string'){pn.innerHTML='<p class="err">This link looks broken. Ask the organizer for a new one.</p>';return}
     var btns=[];
     data.k.forEach(function(cat,ci){
       var h=document.createElement('div');h.className='age';h.style.cssText='margin:14px 0 0;font-weight:700;color:var(--green)';h.textContent=cat;pn.appendChild(h);
       data.n.forEach(function(name,i){
         if(data.c[i]!==ci)return;
-        var b=document.createElement('button');b.className='ghost nm'+(i===data.m?' me':'');b.textContent=name;
+        var b=document.createElement('button');b.className='ghost nm'+(i===data.m?' me':'');b.textContent=name;b.disabled=(i!==data.m);
         b.onclick=function(){
           btns.forEach(function(x){x.classList.remove('sel')});b.classList.add('sel');
-          $('pres').innerHTML='🎁 '+esc(data.n[data.t[i]])+'<div class="age" style="font-weight:400;font-size:.9rem;margin-top:6px">'+esc(name)+', your Manito/Manita is:</div>';
+          $('pres').innerHTML='🎁 '+esc(data.r)+'<div class="age" style="font-weight:400;font-size:.9rem;margin-top:6px">'+esc(name)+', your Manito/Manita is:</div>';
           $('pcard').classList.remove('hide');$('pcard').scrollIntoView({behavior:'smooth',block:'start'});
         };
         btns.push(b);pn.appendChild(b);
@@ -177,7 +178,7 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
   function linkFor(r){
     var ks=[];results.forEach(function(x){if(ks.indexOf(x.cat)<0)ks.push(x.cat)});
     var names=results.map(function(x){return x.name});
-    return baseUrl()+'?r='+enc({n:names,k:ks,c:results.map(function(x){return ks.indexOf(x.cat)}),t:results.map(function(x){return names.indexOf(x.to)}),m:results.indexOf(r)});
+    return baseUrl()+'?r='+enc({n:names,k:ks,c:results.map(function(x){return ks.indexOf(x.cat)}),m:results.indexOf(r),r:r.to});
   }
   function msgFor(r){return 'Hi '+r.first+'! 🎄 Here’s your private Manito/Manita link. Open it and tap your name to see who you’re gifting (keep it secret!): '+linkFor(r)}
   function copy(t,done){
