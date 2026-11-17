@@ -29,6 +29,9 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
 .reveal{text-align:center;padding:18px 8px;font-size:1.6rem;font-weight:700;color:var(--green)}
 .err{color:var(--red);font-size:1rem}
 .row{display:flex;align-items:center}
+.nm{width:100%;margin:6px 0 0;text-align:left;color:var(--ink)}
+.nm.me{border-color:var(--green)}
+.nm.sel{background:var(--green);color:#fff;border-color:var(--green)}
 .hide{display:none}
 </style>
 </head>
@@ -38,15 +41,11 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
 
 <!-- PARTICIPANT VIEW -->
 <div id="pview" class="hide">
-  <p class="sub">Your private gift-exchange link. Please keep it secret!</p>
+  <p class="sub">Your private gift-exchange link. Keep it secret!</p>
+  <section class="card hide" id="pcard"><div class="reveal" id="pres"></div></section>
   <section class="card">
-    <h2>Who’s my Manito/Manita?</h2>
-    <label for="pf">First name</label>
-    <input id="pf" autocomplete="off" placeholder="First name">
-    <label for="pl">Last name</label>
-    <input id="pl" autocomplete="off" placeholder="Last name">
-    <button id="reveal">Reveal 🤫</button>
-    <div class="reveal hide" id="pres"></div>
+    <h2>Tap your name to see your Manito/Manita 🤫</h2>
+    <div id="pnames"></div>
   </section>
 </div>
 
@@ -128,14 +127,22 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     var data=null;
     try{data=dec(token)}catch(e){}
     $('pview').classList.remove('hide');
-    $('reveal').onclick=function(){
-      var r=$('pres');r.classList.remove('hide');
-      if(!data||data.length<3){r.className='reveal err';r.textContent='This link looks broken. Ask the organizer for a new one.';return}
-      if(norm($('pf').value+' '+$('pl').value)!==norm(data[0])){
-        r.className='reveal err';r.style.fontSize='1rem';r.textContent='That name doesn’t match this link. Type your first and last name.';return}
-      r.className='reveal';r.style.fontSize='';
-      r.innerHTML='🎁 '+esc(data[1])+'<div class="age" style="font-weight:400;font-size:.9rem;margin-top:6px">Group: '+esc(data[2])+'</div>';
-    };
+    var pn=$('pnames');
+    if(!data||!data.n||!data.t){pn.innerHTML='<p class="err">This link looks broken. Ask the organizer for a new one.</p>';return}
+    var btns=[];
+    data.k.forEach(function(cat,ci){
+      var h=document.createElement('div');h.className='age';h.style.cssText='margin:14px 0 0;font-weight:700;color:var(--green)';h.textContent=cat;pn.appendChild(h);
+      data.n.forEach(function(name,i){
+        if(data.c[i]!==ci)return;
+        var b=document.createElement('button');b.className='ghost nm'+(i===data.m?' me':'');b.textContent=name;
+        b.onclick=function(){
+          btns.forEach(function(x){x.classList.remove('sel')});b.classList.add('sel');
+          $('pres').innerHTML='🎁 '+esc(data.n[data.t[i]])+'<div class="age" style="font-weight:400;font-size:.9rem;margin-top:6px">'+esc(name)+', your Manito/Manita is:</div>';
+          $('pcard').classList.remove('hide');$('pcard').scrollIntoView({behavior:'smooth',block:'start'});
+        };
+        btns.push(b);pn.appendChild(b);
+      });
+    });
     return;
   }
 
@@ -167,8 +174,12 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     });
   }
   function baseUrl(){return location.href.split('#')[0].split('?')[0]}
-  function linkFor(r){return baseUrl()+'?r='+enc([r.name,r.to,r.cat])}
-  function msgFor(r){return 'Hi '+r.first+'! 🎄 Here’s your private Manito/Manita link. Open it and type your first and last name to see who you’re gifting (keep it secret!): '+linkFor(r)}
+  function linkFor(r){
+    var ks=[];results.forEach(function(x){if(ks.indexOf(x.cat)<0)ks.push(x.cat)});
+    var names=results.map(function(x){return x.name});
+    return baseUrl()+'?r='+enc({n:names,k:ks,c:results.map(function(x){return ks.indexOf(x.cat)}),t:results.map(function(x){return names.indexOf(x.to)}),m:results.indexOf(r)});
+  }
+  function msgFor(r){return 'Hi '+r.first+'! 🎄 Here’s your private Manito/Manita link. Open it and tap your name to see who you’re gifting (keep it secret!): '+linkFor(r)}
   function copy(t,done){
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,function(){window.prompt('Copy this:',t)})}
     else{window.prompt('Copy this:',t)}
