@@ -88,7 +88,7 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
 
   <section class="card hide" id="dcard">
     <h2>2. Draw</h2>
-    <p class="age" style="margin:0">Names are drawn separately inside each group. Each group needs at least 2 people.</p>
+    <p class="age" style="margin:0">Names are drawn separately inside each group, avoiding same-family (last name) pairs where possible. Each group needs at least 2 people.</p>
     <button class="green" id="draw">Draw names 🎲</button>
     <div class="msg" id="dmsg"></div>
   </section>
@@ -185,15 +185,21 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,function(){window.prompt('Copy this:',t)})}
     else{window.prompt('Copy this:',t)}
   }
+  function lastOf(r){return r.last||r.name.split(' ').slice(1).join(' ')||r.name}
+  function firstOf(r){return r.first||r.name.split(' ')[0]}
+  function sortedResults(){
+    var order=[];results.forEach(function(r){if(order.indexOf(r.cat)<0)order.push(r.cat)});
+    return results.slice().sort(function(a,b){return order.indexOf(a.cat)-order.indexOf(b.cat)||lastOf(a).localeCompare(lastOf(b))||firstOf(a).localeCompare(firstOf(b))});
+  }
   function renderResults(){
     $('rcard').classList.toggle('hide',!(results.length&&isAdmin));
     var ul=$('rlist');ul.innerHTML='';
     var show=$('showall').checked;
     var lastCat=null;
-    results.forEach(function(r){
+    sortedResults().forEach(function(r){
       if(r.cat!==lastCat){lastCat=r.cat;var g=document.createElement('li');g.className='grp';g.textContent=r.cat;ul.appendChild(g)}
       var li=document.createElement('li');
-      li.innerHTML='<span>'+esc(r.name)+' <span class="age">('+esc(r.cat)+')'+(show?' → <strong>'+esc(r.to)+'</strong>':'')+'</span></span>';
+      li.innerHTML='<span>'+esc(lastOf(r)+', '+firstOf(r))+'<span class="age">'+(show?' → <strong>'+esc(r.to)+'</strong>':'')+'</span></span>';
       var box=document.createElement('span');box.className='row';
       var c=document.createElement('button');c.className='sm';c.textContent='Copy';
       c.onclick=function(){copy(msgFor(r),function(){c.textContent='Copied ✓';setTimeout(function(){c.textContent='Copy'},1500)})};
@@ -245,24 +251,31 @@ li.grp{display:block;border:0;padding:14px 0 4px;color:var(--green);font-weight:
 
   $('draw').onclick=function(){
     if(results.length&&!confirm('Drawing again will replace the links you already sent. Continue?'))return;
-    var out=[],skipped=[];
+    var out=[],skipped=[],famWarn=[];
     allCats().forEach(function(c){
       var g=people.filter(function(p){return p.cat===c});
       if(g.length<2){if(g.length)skipped.push(c);return}
-      var perm;
-      do{perm=g.slice();for(var i=perm.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=perm[i];perm[i]=perm[j];perm[j]=t}}
-      while(perm.some(function(q,k){return q===g[k]}));
-      g.forEach(function(p,k){var q=perm[k];out.push({name:p.first+' '+p.last,first:p.first,cat:c,to:q.first+' '+q.last})});
+      var best=null,bestC=1e9;
+      for(var tries=0;tries<20000&&bestC>0;tries++){
+        var perm=g.slice();
+        for(var i=perm.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=perm[i];perm[i]=perm[j];perm[j]=t}
+        if(perm.some(function(q,k){return q===g[k]}))continue;
+        var cc=0;g.forEach(function(p,k){if(norm(p.last)===norm(perm[k].last))cc++});
+        if(cc<bestC){bestC=cc;best=perm}
+      }
+      if(!best)best=g.slice(1).concat(g[0]);
+      if(bestC>0)famWarn.push(c+' ('+bestC+')');
+      g.forEach(function(p,k){var q=best[k];out.push({name:p.first+' '+p.last,first:p.first,last:p.last,cat:c,to:q.first+' '+q.last})});
     });
     if(!out.length){$('dmsg').textContent='Each group needs at least 2 people.';return}
     results=out;save('mm_results',results);
-    $('dmsg').textContent='Done! Send each person their private link below.'+(skipped.length?' Not enough people in: '+skipped.join(', ')+'.':'');
+    $('dmsg').textContent='Done! Send each person their private link below.'+(skipped.length?' Not enough people in: '+skipped.join(', ')+'.':'')+(famWarn.length?' Same-family pairs couldn’t be avoided in: '+famWarn.join(', ')+'.':'');
     renderResults();
   };
 
   $('copyall').onclick=function(){
     var b=$('copyall');
-    copy(results.map(function(r){return r.name+': '+linkFor(r)}).join('\n'),function(){b.textContent='Copied ✓';setTimeout(function(){b.textContent='Copy all links'},1500)});
+    copy(sortedResults().map(function(r){return r.name+': '+linkFor(r)}).join('\n'),function(){b.textContent='Copied ✓';setTimeout(function(){b.textContent='Copy all links'},1500)});
   };
 
   $('clear').onclick=function(){
